@@ -1,4 +1,5 @@
-import { PayloadAction, createSlice } from "@reduxjs/toolkit";
+import { createSlice } from "@reduxjs/toolkit";
+
 
 interface DiaryState {
   diaryEntries: [];
@@ -38,9 +39,15 @@ const diarySlice = createSlice({
     clearError: (state) => {
       state.error = false;
     },
+    setSubmittedAndError: (state, action) => {
+      const { submitted, error } = action.payload;
+      state.submitted = submitted;
+      state.error = error;
+    },
+    newCard: (state, action) =>{},
     fetchCards: () => { },
   },
 });
 
-export const { addDiaryEntry, setError, setSubmitText, setDescription, setSubmitted, clearError, fetchCards } = diarySlice.actions;
+export const { addDiaryEntry, newCard, setError, setSubmitText, setDescription, setSubmitted, clearError, fetchCards, setSubmittedAndError } = diarySlice.actions;
 export default diarySlice.reducer;

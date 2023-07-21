@@ -1,7 +1,7 @@
-import { call, put, take, takeEvery, takeLatest } from "redux-saga/effects";
-import { addDiaryEntry, fetchCards } from "./diarySlice";
+import { put, take, takeEvery, takeLatest } from "redux-saga/effects";
+import { addDiaryEntry, clearError, fetchCards, newCard, setDescription, setSubmitText } from "./diarySlice";
 import { PayloadAction } from "@reduxjs/toolkit";
-import { addDoc, collection, getDocs, onSnapshot } from "firebase/firestore";
+import { addDoc, collection, onSnapshot } from "firebase/firestore";
 import { db } from '../config/firebase'
 import { eventChannel } from "redux-saga";
 
@@ -11,20 +11,12 @@ interface DiaryEntry {
   description: string;
 };
 
+const cardsCollectionRef = collection(db, 'cards');
+
 // Fetch diary entries and subscribe to real-time updates
 function* fetchCardsSaga(): Generator<any, void, any> {
   try {
-    const cardsCollectionRef = collection(db, 'cards');
-
-    // Fetch initial data using getDocs
-    const snapshot = yield call(getDocs, cardsCollectionRef);
-    const entries: DiaryEntry[] = [];
-    snapshot.forEach((doc: { data: () => DiaryEntry }) => {
-      const entry = doc.data() as DiaryEntry;
-      entries.push(entry);
-    });
-    yield put(addDiaryEntry(entries));
-
+    
     // Channel to listen for real-time updates
     const channel = eventChannel((emit) => {
       const unsubscribe = onSnapshot(cardsCollectionRef, (querySnapshot) => {
@@ -51,6 +43,28 @@ function* fetchCardsSaga(): Generator<any, void, any> {
   }
 }
 
+function* addNewCardSaga(action: PayloadAction<DiaryEntry>): Generator<any, void, any> {
+  try {
+    const { title, username, description } = action.payload;
+    const newDiaryEntry: DiaryEntry = {
+      title,
+      username,
+      description,
+    };
+
+    yield addDoc(cardsCollectionRef, newDiaryEntry);
+    
+    // Reset the form fields after successful submission
+    yield put(clearError());
+    yield put(setSubmitText(''));
+    yield put(setDescription(''));
+  } catch (error) {
+    console.error('Error adding document: ', error);
+
+  }
+}
+
 export default function* diarySaga() {
   yield takeEvery(fetchCards.type, fetchCardsSaga);
+  yield takeLatest(newCard.type, addNewCardSaga)
 }

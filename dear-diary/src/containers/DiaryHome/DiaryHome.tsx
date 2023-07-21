@@ -2,9 +2,8 @@ import { Box, Button, TextField, Typography, useTheme } from '@mui/material'
 import { useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { DiaryCard } from '../../components/DiaryCard';
-import { clearError, fetchCards, setDescription, setError, setSubmitText, setSubmitted } from '../../redux/diarySlice';
-import { addDoc, collection } from 'firebase/firestore';
-import { db } from '../../config/firebase';
+import { newCard, setError, setSubmitText, setDescription, fetchCards, setSubmittedAndError} from '../../redux/diarySlice';
+
 import { useEffect } from 'react';
 
 type DiaryEntry = {
@@ -18,7 +17,6 @@ export const DiaryHome = () => {
   
     const location = useLocation();
     const { nickname } = location.state || { nickname: '' };
-    const cardsCollectionRef = collection(db, 'cards')
 
     const diaryEntries = useSelector((state: any) => state.diary.diaryEntries);
     const error = useSelector((state: any) => state.diary.error);
@@ -35,26 +33,14 @@ export const DiaryHome = () => {
         if (submitText.trim() === '' && description.trim() === '') {
             dispatch(setError(true));
         } else {
-            dispatch(setSubmitted(true));
-            dispatch(setError(false));
+            dispatch(setSubmittedAndError({ submitted: true, error: false }));
 
-            try {
-                //save card entries to Firestore
-                const newDiaryEntry: DiaryEntry = {
-                    title: submitText,
-                    username: nickname,
-                    description: description
-                };
-
-                addDoc(cardsCollectionRef, newDiaryEntry);
-
-                // Reset the form fields after successful submission
-                dispatch(clearError());
-                dispatch(setSubmitText(''));
-                dispatch(setDescription(''));
-            } catch (error) {
-                console.error('Error adding document: ', error);
-            }
+            const newDiaryEntry: DiaryEntry = {
+                title: submitText,
+                username: nickname,
+                description: description
+            };
+            dispatch(newCard(newDiaryEntry));
         }
     }
 
